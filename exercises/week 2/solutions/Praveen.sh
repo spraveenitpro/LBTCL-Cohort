@@ -72,7 +72,6 @@ fund_miner_wallets() {
 	echo -e "\n \n \n"
 	original_balance=$(bitcoin-cli  -regtest -rpcwallet="Miner" getbalance)
 	echo "Original balance in $mineraddress $original_balance"
-
 }
 
 create_rbf_transaction() {
@@ -95,7 +94,7 @@ create_rbf_transaction() {
 
 print_json() {
 	json=$(bitcoin-cli -regtest -rpcwallet="Miner" decoderawtransaction $parentrawtxhex)
-	#echo $json | jq -r
+
 	inputtx1=$(echo $json | jq -r '.vin[0].txid')
 	inputtx2=$(echo $json | jq -r '.vin[1].txid')
 	inputvout1=$(echo $json | jq -r '.vin[0].vout')
@@ -125,8 +124,6 @@ create_child_transaction() {
 
 	new_miner_address=$(bitcoin-cli -regtest -named -rpcwallet="Miner" getnewaddress)
 	childrawtxhex=$(bitcoin-cli -regtest -named  -rpcwallet="Miner" createrawtransaction inputs='''[ { "txid": "'$parentxid'", "vout": 1} ]''' outputs='''{ "'$new_miner_address'": 29.9995 }''')
-
-
 	signedchildtx=$(bitcoin-cli -regtest -named  -rpcwallet="Miner"  signrawtransactionwithwallet hexstring=$childrawtxhex | jq -r '.hex')
 	childtxid=$(bitcoin-cli -regtest -named  -rpcwallet="Miner" sendrawtransaction hexstring=$signedchildtx)
 
@@ -142,7 +139,6 @@ create_child_transaction() {
 bump_parent_transaction() {
 	parentrbftx=$(bitcoin-cli -named -rpcwallet="Miner"  createrawtransaction inputs='''[ { "txid": "'$utxo1_txid'", "vout": '$utxo1_vout', "sequence": 1}, { "txid": "'$utxo2_txid'", "vout": '$utxo2_vout', "sequence": 1} ]''' outputs='''{ "'$traderaddress'": 70, "'$changeaddress'": 29.9991 }''')
 	signedparentrbftx=$(bitcoin-cli -regtest -named  -rpcwallet="Miner"  signrawtransactionwithwallet hexstring=$parentrbftx | jq -r '.hex')
-
 	parenrbftxid=$(bitcoin-cli -regtest -named  -rpcwallet="Miner" sendrawtransaction hexstring=$signedparentrbftx)
 
 
