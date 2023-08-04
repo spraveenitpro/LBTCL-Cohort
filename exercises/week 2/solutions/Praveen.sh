@@ -15,7 +15,7 @@ create_conf_file() {
 	touch bitcoin.conf
 
 	echo "regtest=1" >> bitcoin.conf
-	echo "fallbackfee=0.00#01" >> bitcoin.conf
+	echo "fallbackfee=0.00001" >> bitcoin.conf
 	echo "server=1" >> bitcoin.conf
 	echo "txindex=1" >> bitcoin.conf
 	echo "daemon=1" >> bitcoin.conf
@@ -171,9 +171,7 @@ clean_up() {
 	# Delete the regtest directory
 	rm -rf regtest
 	# Delete the bitcoin.conf file
-	#rm /Users/$USER/Library/Application\ Support/Bitcoin/bitcoin.conf
-
-
+	rm /Users/$USER/Library/Application\ Support/Bitcoin/bitcoin.conf
 }
 
 
@@ -187,4 +185,4 @@ create_rbf_transaction
 print_json
 create_child_transaction
 bump_parent_transaction
-#clean_up
+clean_up
