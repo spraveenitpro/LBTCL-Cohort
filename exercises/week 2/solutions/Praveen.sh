@@ -149,6 +149,7 @@ bump_parent_transaction() {
 	bitcoin-cli -regtest -rpcwallet="Miner" getrawmempool
 	echo -e "\n \n \n"
 	read -n 1 -s -r -p "  Press any key to continue to continue cleanup"
+	echo -e "\n \n \n"
 }
 
 
