@@ -67,6 +67,9 @@ fund_miner_wallets() {
 
 	mineraddress=$(bitcoin-cli -regtest -rpcwallet="Miner" getnewaddress "Mining Reward")
 	bitcoin-cli -regtest -rpcwallet="Miner" generatetoaddress 103 $mineraddress
+	echo -e "\n \n \n"
+	read -n 1 -s -r -p "  Press any key to continue to continue cleanup"
+	echo -e "\n \n \n"
 	original_balance=$(bitcoin-cli  -regtest -rpcwallet="Miner" getbalance)
 	echo "Original balance in $mineraddress $original_balance"
 
