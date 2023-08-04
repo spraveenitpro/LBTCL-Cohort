@@ -15,7 +15,7 @@ create_conf_file() {
 	touch bitcoin.conf
 
 	echo "regtest=1" >> bitcoin.conf
-	echo "fallbackfee=0.0001" >> bitcoin.conf
+	echo "fallbackfee=0.00#01" >> bitcoin.conf
 	echo "server=1" >> bitcoin.conf
 	echo "txindex=1" >> bitcoin.conf
 	echo "daemon=1" >> bitcoin.conf
@@ -76,14 +76,12 @@ fund_miner_wallets() {
 create_rbf_transaction() {
 	utxo1_txid=$(bitcoin-cli -regtest -rpcwallet="Miner" listunspent | jq -r '.[0] | .txid')
 	utxo2_txid=$(bitcoin-cli -regtest -rpcwallet="Miner" listunspent | jq -r '.[1] | .txid')
-	utxo3_txid=$(bitcoin-cli -regtest -rpcwallet="Miner" listunspent | jq -r '.[2] | .txid')
 
 	utxo1_vout=$(bitcoin-cli -regtest -rpcwallet="Miner" listunspent | jq -r '.[0] | .vout')
 	utxo2_vout=$(bitcoin-cli -regtest -rpcwallet="Miner" listunspent | jq -r '.[1] | .vout')
-	utxo3_vout=$(bitcoin-cli -regtest -rpcwallet="Miner" listunspent | jq -r '.[2] | .vout')
 
-	traderaddress=$(bitcoin-cli -regtest -rpcwallet="Trader" getnewaddress address_type=p2sh-segwit)
-	changeaddress=$(bitcoin-cli -regtest -rpcwallet="Miner" getnewaddress address_type=p2sh-segwit)
+	traderaddress=$(bitcoin-cli -regtest -rpcwallet="Trader" getnewaddress )
+	changeaddress=$(bitcoin-cli -regtest -rpcwallet="Miner" getrawchangeaddress )
 
 	echo "utxo1_txid $utxo1_txid"
 	echo "utxo2_txid $utxo2_txid"
@@ -95,24 +93,20 @@ create_rbf_transaction() {
 	bitcoin-cli -regtest -rpcwallet="Miner" listunspent
 
 	#Create a raw transaction
-	parentrawtxhex=$(bitcoin-cli -regtest -named  -rpcwallet="Miner" createrawtransaction inputs='''[ { "txid": "'$utxo1_txid'", "vout": '$utxo1_vout',  "sequence": 1}, { "txid": "'$utxo2_txid'", "vout": '$utxo2_vout',  "sequence": 1} ]''' outputs='''{ "'$traderaddress'": 70, "'$changeaddress'": 29.9999 }''')
+	parentrawtxhex=$(bitcoin-cli -regtest -named  -rpcwallet="Miner" createrawtransaction inputs='''[ { "txid": "'$utxo1_txid'", "vout": '$utxo1_vout'}, { "txid": "'$utxo2_txid'", "vout": '$utxo2_vout'} ]''' outputs='''{ "'$traderaddress'": 70, "'$changeaddress'": 29.9999 }''')
 	echo "Raw transaction $rawtxhex"
-	signedtx=$(bitcoin-cli -regtest -named  -rpcwallet="Miner"  signrawtransactionwithwallet hexstring=$parentrawtxhex | jq -r '.hex')
-	echo "Signed transaction $signedtx"
-	bitcoin-cli -regtest -named  -rpcwallet="Miner" sendrawtransaction hexstring=$signedtx
-	echo "Signed transaction $signedtx sent!"
+	signedparenttx=$(bitcoin-cli -regtest -named  -rpcwallet="Miner"  signrawtransactionwithwallet hexstring=$parentrawtxhex | jq -r '.hex')
+	echo "Signed transaction $signedparenttx"
+	parentxid=$(bitcoin-cli -regtest -named  -rpcwallet="Miner" sendrawtransaction hexstring=$signedparenttx)
+	echo "Signed transaction $signedparenttx sent!"
 
-	#tx=$(bitcoin-cli -regtest getrawmempool | jq -r '.[]')
-	#completetx=$(bitcoin-cli -regtest getrawtransaction $tx 1)
+	echo "Parent transaction id $parentxid"
+	read -n 1 -s -r -p "Press any key to continue"
 
-
-
-	#bitcoin-cli -regtest -named  -rpcwallet="Miner" sendtoaddress $traderaddress 70
 }
 
 
 print_json() {
-	tx=$(bitcoin-cli -regtest -rpcwallet="Miner"  getrawmempool  | jq -r '.[]' )
 	json=$(bitcoin-cli -regtest -rpcwallet="Miner" decoderawtransaction $parentrawtxhex)
 	echo $json | jq -r
 	inputtx1=$(echo $json | jq -r '.vin[0].txid')
@@ -124,23 +118,46 @@ print_json() {
 	trader_amount=$(echo $json | jq -r '.vout[0].value')
 	miner_amount=$(echo $json | jq -r '.vout[1].value')
 	weight=$(echo $json | jq -r '.weight')
-	json_fees=$(bitcoin-cli -regtest -rpcwallet="Miner" gettransaction $tx | jq -r '.fee')
 
-	#json_fees_tx=$( bitcoin-cli -regtest getrawmempool | jq -r '.[]' )
-	#json_fees=$(bitcoin-cli -regtest -rpcwallet="Miner" getrawtransaction $json_fees_tx) | jq -r '.fees'
+	txfees=$(bitcoin-cli -named -rpcwallet="Miner" getmempoolentry $(bitcoin-cli -regtest -rpcwallet="Miner" getrawmempool | jq -r '.[]')  )
+	fees=$(echo $txfees | jq -r '.fees.base')
 
-	#echo $inputtx1, $inputtx2, $inputvout1, $inputvout2, $trader_script_pubkey, $miner_script_pubkey, $trader_amount, $miner_amount, $weight, $json_fees
 	echo "**************** JSON of Parent Transaction *********************"
-	parent_json='''{ "input": [ { "txid": "'$inputtx1'", "vout": '$inputvout1'}, { "txid": "'$inputtx2'", "vout": '$inputvout2'} ], "output": [ {"script_pubkey": "'$trader_script_pubkey'", "amount": "'$trader_amount'"}, {"script_pubkey": "'$miner_script_pubkey'", "amount": "'$miner_amount'"}] , "weight": "'$weight'", "fees": "'$json_fees'" }'''
+	parent_json='''{ "input": [ { "txid": "'$inputtx1'", "vout": '$inputvout1'}, { "txid": "'$inputtx2'", "vout": '$inputvout2'} ], "output": [ {"script_pubkey": "'$trader_script_pubkey'", "amount": "'$trader_amount'"}, {"script_pubkey": "'$miner_script_pubkey'", "amount": "'$miner_amount'"}] , "weight": "'$weight'", "fees": "'$fees'" }'''
 
 	echo $parent_json | jq -r
-
-
-
-
-
-
+	bitcoin-cli -regtest -rpcwallet="Miner" getrawmempool
+	read -n 1 -s -r -p "That was after the initial parent transaction, Press any key to continue"
 }
+
+create_child_transaction() {
+
+	new_miner_address=$(bitcoin-cli -regtest -named -rpcwallet="Miner" getnewaddress)
+	childrawtxhex=$(bitcoin-cli -regtest -named  -rpcwallet="Miner" createrawtransaction inputs='''[ { "txid": "'$parentxid'", "vout": 1} ]''' outputs='''{ "'$new_miner_address'": 29.9995 }''')
+	echo "Raw Child transaction $childrawtxhex"
+
+	signedchildtx=$(bitcoin-cli -regtest -named  -rpcwallet="Miner"  signrawtransactionwithwallet hexstring=$childrawtxhex | jq -r '.hex')
+	childtxid=$(bitcoin-cli -regtest -named  -rpcwallet="Miner" sendrawtransaction hexstring=$signedchildtx)
+
+	echo $(bitcoin-cli  -regtest -rpcwallet="Miner" getmempoolentry $childtxid) | jq -r
+	bitcoin-cli -regtest -rpcwallet="Miner" getrawmempool
+	read -n 1 -s -r -p "That was after the child transaction, Press any key to continue"
+}
+
+bump_parent_transaction() {
+	parentrbftx=$(bitcoin-cli -named -rpcwallet="Miner"  createrawtransaction inputs='''[ { "txid": "'$utxo1_txid'", "vout": '$utxo1_vout'}, { "txid": "'$utxo2_txid'", "vout": '$utxo2_vout'} ]''' outputs='''{ "'$traderaddress'": 70, "'$changeaddress'": 29.9991 }''')
+	signedparentrbftx=$(bitcoin-cli -regtest -named  -rpcwallet="Miner"  signrawtransactionwithwallet hexstring=$parentrbftx | jq -r '.hex')
+	echo "Signed transaction $signedparentrbftx"
+	parenrbftxid=$(bitcoin-cli -regtest -named  -rpcwallet="Miner" sendrawtransaction hexstring=$signedparentrbftx)
+	echo "Signed transaction $signedparenttx sent!"
+
+	echo "Parent transaction id $parenrbftxid"
+	bitcoin-cli -regtest -rpcwallet="Miner" getrawmempool
+	read -n 1 -s -r -p "That was after the fee bump parent transaction, Press any key to continue"
+}
+
+
+
 
 
 
@@ -168,4 +185,6 @@ create_wallets
 fund_miner_wallets
 create_rbf_transaction
 print_json
+create_child_transaction
+bump_parent_transaction
 #clean_up
