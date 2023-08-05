@@ -84,7 +84,6 @@ create_rbf_transaction() {
 	traderaddress=$(bitcoin-cli -regtest -rpcwallet="Trader" getnewaddress )
 	changeaddress=$(bitcoin-cli -regtest -rpcwallet="Miner" getrawchangeaddress )
 
-
 	parentrawtxhex=$(bitcoin-cli -regtest -named  -rpcwallet="Miner" createrawtransaction inputs='''[ { "txid": "'$utxo1_txid'", "vout": '$utxo1_vout'}, { "txid": "'$utxo2_txid'", "vout": '$utxo2_vout'} ]''' outputs='''{ "'$traderaddress'": 70, "'$changeaddress'": 29.9999 }''')
 	signedparenttx=$(bitcoin-cli -regtest -named  -rpcwallet="Miner"  signrawtransactionwithwallet hexstring=$parentrawtxhex | jq -r '.hex')
 	parentxid=$(bitcoin-cli -regtest -named  -rpcwallet="Miner" sendrawtransaction hexstring=$signedparenttx)
@@ -127,7 +126,6 @@ create_child_transaction() {
 	signedchildtx=$(bitcoin-cli -regtest -named  -rpcwallet="Miner"  signrawtransactionwithwallet hexstring=$childrawtxhex | jq -r '.hex')
 	childtxid=$(bitcoin-cli -regtest -named  -rpcwallet="Miner" sendrawtransaction hexstring=$signedchildtx)
 
-
 	echo -e "\n*******************************************************\n"
 	echo -e "\n Here is newly minted child transaction in the mempool \n"
 	echo -e "\n*******************************************************\n"
@@ -141,7 +139,6 @@ bump_parent_transaction() {
 	signedparentrbftx=$(bitcoin-cli -regtest -named  -rpcwallet="Miner"  signrawtransactionwithwallet hexstring=$parentrbftx | jq -r '.hex')
 	parenrbftxid=$(bitcoin-cli -regtest -named  -rpcwallet="Miner" sendrawtransaction hexstring=$signedparentrbftx)
 
-
 	echo -e "\n*************************************************************************************************************************** \n"
 	echo -e "\n The fee bump on parent transaction knocked out both the inital parent and the child transaction from the mempool \n"
 	echo -e "\n*************************************************************************************************************************** \n"
@@ -150,7 +147,6 @@ bump_parent_transaction() {
 	read -n 1 -s -r -p "  Press any key to continue to continue cleanup"
 	echo -e "\n \n \n"
 }
-
 
 clean_up() {
 	echo "****************************************"
