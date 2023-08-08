@@ -8,7 +8,7 @@ NC='\033[0m' # No Color
 # Function to delete regtest dir if already exists within /Users/$USER/Library/Application\ Support/Bitcoin
 setup_regtest_env() {
 	echo "**************************************"
-	echo -e "${ORANGE}Setup regtest directory {NC}"
+	echo -e "${ORANGE}Setup regtest directory ${NC}"
 	echo "**************************************"
 
 	# delete  ~/tmp_bitcoind_regtest if it exists
