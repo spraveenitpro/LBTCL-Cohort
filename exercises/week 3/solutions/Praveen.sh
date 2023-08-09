@@ -52,11 +52,14 @@ create_wallets() {
 	echo -e "${ORANGE}Creating Three wallets${NC}"
 	echo "**************************************"
 	# Create a wallet called Miner
-	bitcoin-cli -regtest -datadir=${HOME}/tmp_bitcoind_regtest createwallet "Miner"
+	#bitcoin-cli -regtest -datadir=${HOME}/tmp_bitcoind_regtest createwallet "Miner" false
+	bitcoin-cli  -datadir=${HOME}/tmp_bitcoind_regtest -named createwallet wallet_name=Miner descriptors=false
 	# Create a wallet called Alice
-	bitcoin-cli -regtest -datadir=${HOME}/tmp_bitcoind_regtest createwallet "Alice"
+	bitcoin-cli  -datadir=${HOME}/tmp_bitcoind_regtest -named createwallet wallet_name=Alice descriptors=false
+
 	# Create a wallet called Bob
-	bitcoin-cli -regtest -datadir=${HOME}/tmp_bitcoind_regtest createwallet "Bob"
+	bitcoin-cli  -datadir=${HOME}/tmp_bitcoind_regtest -named createwallet wallet_name=Bob descriptors=false
+
 }
 
 
@@ -220,6 +223,6 @@ create_wallets
 fund_wallets
 create_multisig
 create_psbt
-print_alice_bob_balance
+#print_alice_bob_balance
 create_spending_psbt
 clean_up
