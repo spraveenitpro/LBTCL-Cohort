@@ -183,17 +183,17 @@ create_spending_psbt() {
 	bitcoin-cli -regtest -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet="Bob"  -named addmultisigaddress  nrequired=2 keys='''["'$bob_pubkey'","'$alice_pubkey'"]'''
 	bitcoin-cli -regtest -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet="Alice"  -named addmultisigaddress  nrequired=2 keys='''["'$bob_pubkey'","'$alice_pubkey'"]'''
 
-	#multisig_address_for_bob=$(bitcoin-cli -regtest -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Bob getnewaddress legacy)
-	#multisig_address_for_alice=$(bitcoin-cli -regtest -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Alice getnewaddress legacy)
-	#psbt_spend=$(bitcoin-cli -regtest -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Bob -named createpsbt inputs='''[ { "txid": "'$txid_psbt'", "vout": 0 } ]''' outputs='''[{ "'$multisig_address_for_bob'": 9.99999 },{ "'$multisig_address_for_alice'": 9.99999 }]''')
+	multisig_address_for_bob=$(bitcoin-cli -regtest -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Bob getnewaddress legacy)
+	multisig_address_for_alice=$(bitcoin-cli -regtest -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Alice getnewaddress legacy)
+	psbt_spend=$(bitcoin-cli -regtest -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Bob -named createpsbt inputs='''[ { "txid": "'$txid_psbt'", "vout": 0 } ]''' outputs='''[{ "'$multisig_address_for_bob'": 9.99999 },{ "'$multisig_address_for_alice'": 9.99999 }]''')
 	#echo $txid_psbt
 
-	#psbt_spend_bob=$(bitcoin-cli -regtest  -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet="Bob" walletprocesspsbt $psbt_spend | jq -r '.psbt')
-	#psbt_spend_alice=$(bitcoin-cli -regtest  -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet="Alice" walletprocesspsbt $psbt_spend_bob | jq -r '.psbt')
-	#psbt_spend_hex=$(bitcoin-cli -regtest -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet="Bob" -named finalizepsbt  psbt=$psbt_spend_alice | jq -r '.hex')
+	psbt_spend_bob=$(bitcoin-cli -regtest  -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet="Bob" walletprocesspsbt $psbt_spend | jq -r '.psbt')
+	psbt_spend_alice=$(bitcoin-cli -regtest  -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet="Alice" walletprocesspsbt $psbt_spend_bob | jq -r '.psbt')
+	psbt_spend_hex=$(bitcoin-cli -regtest -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet="Bob" -named finalizepsbt  psbt=$psbt_spend_alice | jq -r '.hex')
 	#echo $psbt_spend_hex
-	#txid_psbt_spend=$(bitcoin-cli -regtest  -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet="Bob" -named sendrawtransaction hexstring=$psbt_spend_hex)
-	#bitcoin-cli -regtest  -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Miner generatetoaddress 1 $miner_address
+	txid_psbt_spend=$(bitcoin-cli -regtest  -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet="Bob" -named sendrawtransaction hexstring=$psbt_spend_hex)
+	bitcoin-cli -regtest  -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Miner generatetoaddress 1 $miner_address
 
 
 }
