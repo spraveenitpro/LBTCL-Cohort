@@ -52,7 +52,6 @@ create_wallets() {
 	echo -e "${ORANGE}Creating Three wallets${NC}"
 	echo "**************************************"
 	# Create a wallet called Miner
-	#bitcoin-cli -regtest -datadir=${HOME}/tmp_bitcoind_regtest createwallet "Miner" false
 	bitcoin-cli  -datadir=${HOME}/tmp_bitcoind_regtest -named createwallet wallet_name=Miner descriptors=false
 	# Create a wallet called Alice
 	bitcoin-cli  -datadir=${HOME}/tmp_bitcoind_regtest -named createwallet wallet_name=Alice descriptors=false
@@ -115,7 +114,7 @@ create_psbt() {
 	bob_change_address=$(bitcoin-cli -regtest -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet="Bob" getrawchangeaddress legacy)
 	alice_change_address=$(bitcoin-cli -regtest -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet="Alice" getrawchangeaddress legacy)
 
-	#echo $utxo_bob_txid $utxo_bob_vout $utxo_alice_txid $utxo_alice_vout $bob_change_address $alice_change_address
+
 
 	psbt=$(bitcoin-cli -named -regtest  -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet="Bob" createpsbt inputs='''[{"txid" : "'$utxo_bob_txid'","vout":'$utxo_bob_vout'},{"txid" : "'$utxo_alice_txid'","vout":'$utxo_alice_vout'}]''' outputs='''[{"'$multisig_address'":20},{"'$bob_change_address'": 29.99999},{"'$alice_change_address'": 29.99999}]''' )
 
@@ -155,10 +154,9 @@ create_psbt() {
 
 	txid_psbt=$(bitcoin-cli -regtest -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet="Bob" -named sendrawtransaction hexstring=$psbt_hex)
 
-	#echo -e "${ORANGE}Check mempool:${NC}"
-	#bitcoin-cli -regtest -datadir=${HOME}/tmp_bitcoind_regtest  getrawmempool
+
 	bitcoin-cli -regtest -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet="Miner" generatetoaddress 1 $miner_address >> /dev/null
-	#echo $txid_psbt
+
 	bitcoin-cli -regtest -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet="Bob" gettransaction $txid_psbt
 
 
@@ -166,38 +164,42 @@ create_psbt() {
 
 }
 
-
-# print_alice_bob_balance() {
-# 	echo "****************************************"
-# 	echo -e "${ORANGE}Alice and Bob balance${NC}"
-# 	echo "****************************************"
-# 	echo -e "${ORANGE}Alice balance:${NC}"
-# 	bitcoin-cli -regtest -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet="Alice" listunspent
-# 	echo -e "${ORANGE}Bob balance:${NC}"
-# 	bitcoin-cli -regtest -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet="Bob" listunspent
-# }
-
 create_spending_psbt() {
 
 	echo "**************************************"
 	echo -e "${ORANGE}Import Multisig address into Alice and Bob wallets ${NC}"
 	echo "**************************************"
 
-	bitcoin-cli -regtest -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet="Bob"  -named addmultisigaddress  nrequired=2 keys='''["'$bob_pubkey'","'$alice_pubkey'"]'''
-	bitcoin-cli -regtest -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet="Alice"  -named addmultisigaddress  nrequired=2 keys='''["'$bob_pubkey'","'$alice_pubkey'"]'''
+	bitcoin-cli -regtest -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet="Bob"  -named addmultisigaddress  nrequired=2 keys='''["'$alice_pubkey'","'$bob_pubkey'"]'''
+	bitcoin-cli -regtest -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet="Alice"  -named addmultisigaddress  nrequired=2 keys='''["'$alice_pubkey'","'$bob_pubkey'"]'''
 
 	multisig_address_for_bob=$(bitcoin-cli -regtest -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Bob getnewaddress legacy)
 	multisig_address_for_alice=$(bitcoin-cli -regtest -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Alice getnewaddress legacy)
-	psbt_spend=$(bitcoin-cli -regtest -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Bob -named createpsbt inputs='''[ { "txid": "'$txid_psbt'", "vout": 0 } ]''' outputs='''[{ "'$multisig_address_for_bob'": 9.99999 },{ "'$multisig_address_for_alice'": 9.99999 }]''')
-	#echo $txid_psbt
+	psbt_spend=$(bitcoin-cli -regtest -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Bob -named createpsbt inputs='''[ { "txid": "'$txid_psbt'", "vout": 0 } ]''' outputs='''[{ "'$multisig_address_for_bob'": 12.99999 },{ "'$multisig_address_for_alice'": 6.99999 }]''')
+
 
 	psbt_spend_bob=$(bitcoin-cli -regtest  -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet="Bob" walletprocesspsbt $psbt_spend | jq -r '.psbt')
 	psbt_spend_alice=$(bitcoin-cli -regtest  -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet="Alice" walletprocesspsbt $psbt_spend_bob | jq -r '.psbt')
 	psbt_spend_hex=$(bitcoin-cli -regtest -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet="Bob" -named finalizepsbt  psbt=$psbt_spend_alice | jq -r '.hex')
-	#echo $psbt_spend_hex
-	txid_psbt_spend=$(bitcoin-cli -regtest  -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet="Bob" -named sendrawtransaction hexstring=$psbt_spend_hex)
-	bitcoin-cli -regtest  -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Miner generatetoaddress 1 $miner_address
 
+
+
+}
+
+get_alice_bob_balance() {
+
+	echo "**************************************"
+	echo -e "${ORANGE}Alice & Bob Balances ${NC}"
+	echo "**************************************"
+
+	txid_psbt_spend=$(bitcoin-cli -regtest  -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet="Bob" -named sendrawtransaction hexstring=$psbt_spend_hex)
+	bitcoin-cli -regtest  -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Miner generatetoaddress 1 $miner_address >> /dev/null
+
+	Alice_Balance=$(bitcoin-cli -regtest  -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Alice getbalance)
+	Bob_Balance=$(bitcoin-cli -regtest  -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Bob getbalance)
+
+	echo "Alice has: " $Alice_Balance
+	echo "Bob has: " $Bob_Balance
 
 }
 
@@ -223,6 +225,6 @@ create_wallets
 fund_wallets
 create_multisig
 create_psbt
-#print_alice_bob_balance
 create_spending_psbt
+get_alice_bob_balance
 clean_up
