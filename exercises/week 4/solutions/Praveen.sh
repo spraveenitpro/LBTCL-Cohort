@@ -136,7 +136,7 @@ mine_and_broadcast_transaction() {
 	# Display the dots while the background command is running
 	count=0
 	while kill -0 $bg_pid 2> /dev/null; do
-		count=$(( (count + 1) % 11 ))
+		count=$(( (count + 1) % 45 ))
 		printf "\rGenerating blocks: %${count}s" | tr ' ' '.'
 		sleep 0.5
 	done
@@ -150,7 +150,7 @@ mine_and_broadcast_transaction() {
 	bitcoin-cli -named -regtest -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Employer sendrawtransaction $signedtx >> /dev/null
 	bitcoin-cli -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Miner generatetoaddress 1 $miner_address >> /dev/null
 
-
+	echo "Block generation completed"
 	Employer_Balance=$(bitcoin-cli -regtest  -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Employer getbalance)
 	Employee_Balance=$(bitcoin-cli -regtest  -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Employee getbalance)
 	echo "Employee has: " $Employee_Balance
