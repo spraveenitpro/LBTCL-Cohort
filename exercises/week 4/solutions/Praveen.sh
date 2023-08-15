@@ -181,7 +181,7 @@ add_data_to_transaction() {
 }
 
 miner_employee_employer_balance() {
-	echo "**************************************"
+	echo -e "\n**************************************"
 	echo -e "${ORANGE}Employee/Employer Balances:${NC}"
 	echo "**************************************"
 
