@@ -45,7 +45,7 @@ start_bitcoind() {
 
 }
 
-# Function to create 2 wallets called Miner and Trader
+# Function to create 3 wallets called Miner, Employee and Employer
 
 create_wallets() {
 	echo "**************************************"
@@ -53,10 +53,10 @@ create_wallets() {
 	echo "**************************************"
 	# Create a wallet called Miner
 	bitcoin-cli  -datadir=${HOME}/tmp_bitcoind_regtest -named createwallet wallet_name=Miner
-	# Create a wallet called Alice
+	# Create a wallet called Employee
 	bitcoin-cli  -datadir=${HOME}/tmp_bitcoind_regtest -named createwallet wallet_name=Employee
 
-	# Create a wallet called Bob
+	# Create a wallet called Employer
 	bitcoin-cli  -datadir=${HOME}/tmp_bitcoind_regtest -named createwallet wallet_name=Employer
 
 }
@@ -80,9 +80,9 @@ fund_miner_employer() {
 
 	Miner_Balance=$(bitcoin-cli -regtest  -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Miner getbalance)
 	Employer_Balance=$(bitcoin-cli -regtest  -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Employer getbalance)
-
 	echo "Miner has: " $Miner_Balance
 	echo "Employer has: " $Employer_Balance
+
 
 }
 
@@ -98,32 +98,24 @@ create_salary_transaction() {
 
 	fee=0.00001
 	salary=40
-	#remainder=$($Employer_Balance - $fee - $amount| bc)
 	remainder=$(echo "scale=5; $Employer_Balance - $fee - $salary" | bc)
 
 
-	#rawtxhex=$(bitcoin-cli -regtest  -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Employer createrawtransaction inputs='''[{"txid":"'$utxo_txid'", "vout":'$utxo_vout'}]''' outputs='''{"'$recipient'":40, "'$changeaddress'":'$remainder'}''')
 	rawtxhex=$(bitcoin-cli -named -regtest -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Employer createrawtransaction inputs='''[{"txid":"'$utxo_txid'", "vout":'$utxo_vout'}]''' outputs='''{"'$recipient'":40, "'$changeaddress'":'$remainder'}''' locktime=500 )
-	#echo "rawtxhex: " $rawtxhex
-	#bitcoin-cli -regtest -datadir=${HOME}/tmp_bitcoind_regtest decoderawtransaction $rawtxhex
 	signedtx=$(bitcoin-cli -regtest -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Employer signrawtransactionwithwallet $rawtxhex | jq -r '.hex')
-	#bitcoin-cli -regtest -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Employer signrawtransactionwithwallet $rawtxhex | jq -r '.hex'
 
-	#echo $signedtx
 	bitcoin-cli -named -regtest -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Employer sendrawtransaction $signedtx
 
-	echo "**************************************"
+	echo "********************************************************************************************************"
 	echo -e "${ORANGE}As you can see, it will not broadcast due to the timelock while giving the above error${NC}"
-	echo "**************************************"
+	echo "********************************************************************************************************"
 
-	#bitcoin-cli  -regtest -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Employer getblockcount
 }
 
 mine_and_broadcast_transaction() {
 	echo "**************************************"
 	echo -e "${ORANGE}Mining blocks till locktime${NC}"
 	echo "**************************************"
-	#bitcoin-cli -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Miner generatetoaddress 395 $miner_address >> /dev/null
 
 
 	bitcoin-cli -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Miner generatetoaddress 395 $miner_address >> /dev/null &
@@ -151,13 +143,53 @@ mine_and_broadcast_transaction() {
 	bitcoin-cli -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Miner generatetoaddress 1 $miner_address >> /dev/null
 
 	echo "Block generation completed"
+
+}
+
+add_data_to_transaction() {
+	new_employee_address=$(bitcoin-cli -regtest  -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Employee getnewaddress legacy)
+	utxo_txid=$(bitcoin-cli -regtest  -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Employee listunspent | jq -r '.[0].txid' )
+	utxo_vout=$(bitcoin-cli -regtest  -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Employee listunspent | jq -r '.[0].vout' )
+	change_address=$(bitcoin-cli -regtest  -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Employee getrawchangeaddress legacy)
+	op_return_data=$(echo -n "I got my salary, I am rich" | xxd -p)
+
+
+	fee=0.00001
+	Employee_Balance=$(bitcoin-cli -regtest  -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Employee getbalance)
+	remainder=$(echo "scale=5; $Employee_Balance - $fee" | bc)
+
+	rawtxhex=$(bitcoin-cli -named -regtest -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Employee createrawtransaction inputs='''[ {"txid":"'$utxo_txid'", "vout":'$utxo_vout'} ]''' outputs='''{ "data": "'$op_return_data'", "'$new_employee_address'":'$remainder'}''')
+	signedtx=$(bitcoin-cli -regtest -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Employee signrawtransactionwithwallet $rawtxhex | jq -r '.hex')
+	bitcoin-cli -regtest -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Employee sendrawtransaction $signedtx >> /dev/null
+	bitcoin-cli -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Miner generatetoaddress 1 $miner_address >> /dev/null
+
+	echo "***********************************************************************************"
+	echo -e "${ORANGE}Mining transaction with OP_Return data - I got my salary, I am rich${NC}"
+	echo "***********************************************************************************"
+
+	#!/bin/bash
+
+	dots=""
+
+	for i in {1..5}; do
+		dots="${dots}."
+		printf "\rMining OP_Return block$dots"
+		sleep 1
+	done
+
+
+}
+
+miner_employee_employer_balance() {
+	echo "**************************************"
+	echo -e "${ORANGE}Employee/Employer Balances:${NC}"
+	echo "**************************************"
+
 	Employer_Balance=$(bitcoin-cli -regtest  -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Employer getbalance)
 	Employee_Balance=$(bitcoin-cli -regtest  -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Employee getbalance)
+
 	echo "Employee has: " $Employee_Balance
 	echo "Employer has: " $Employer_Balance
-
-
-
 }
 
 
@@ -171,7 +203,6 @@ clean_up() {
 	# Delete the regtest directory
 	rm -rf ~/tmp_bitcoind_regtest
 
-
 }
 
 
@@ -182,4 +213,7 @@ create_wallets
 fund_miner_employer
 create_salary_transaction
 mine_and_broadcast_transaction
+miner_employee_employer_balance
+add_data_to_transaction
+miner_employee_employer_balance
 clean_up
