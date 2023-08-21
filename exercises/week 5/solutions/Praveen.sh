@@ -102,9 +102,9 @@ timelock_transaction() {
 	signedtx=$(bitcoin-cli -regtest -datadir=${HOME}/tmp_bitcoind_regtest -named -rpcwallet=Alice signrawtransactionwithwallet hexstring=$rawtxhex | jq -r '.hex')
 	bitcoin-cli -regtest -datadir=${HOME}/tmp_bitcoind_regtest -rpcwallet=Alice sendrawtransaction $signedtx
 
-	echo "**************************************************************************************************************************************************************************"
-	echo -e "${ORANGE}As you can see above, we are getting the error preventing transimission because of timelock, so let us generate the blocks needed to release transaction:${NC}"
-	echo "**************************************************************************************************************************************************************************"
+	echo "***********************************************************************************************************************************************"
+	echo -e "${ORANGE}As you can see above, we are getting the error preventing transmission because of timelock, so let us generate the blocks needed to release transaction:${NC}"
+	echo "***********************************************************************************************************************************************"
 
 	dots=""
 
